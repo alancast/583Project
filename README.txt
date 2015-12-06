@@ -2,7 +2,7 @@ Repo Usage Instructions:
 1. When you copy and paste a file to this repo update the 
 README to contain where said file is located.
 Ex. file_x: protean/runtime/file_x
-2. DO NOT add an entire foler of protean or LLVM to repo. 
+2. DO NOT add an entire folder of protean or LLVM to repo. 
 Only add files that you personally modified and tell us 
 where they are found.
 3. If you created a file that might need an explanation 

@@ -15,6 +15,8 @@
 
 #define PROTEAN_PASS_ERROR(...) std::cerr << "error: " << __VA_ARGS__ << std::endl; __SHOULD_NOT_ARRIVE;
 
+using namespace llvm;
+
 namespace {
 
     struct FunctionData {
@@ -107,11 +109,30 @@ namespace {
                 llvm::Function* f = it;
                 if (f != NULL){
                     DEBUG(PROTEAN_PASS_COUT << "iterating over code in function: " << f->getName().data() << std::endl);
-
+                    Function::iterator beg = f->getBasicBlockList().begin();
+                    BasicBlock* entry = beg;
+                    
                     // for each BasicBlock
                     for (llvm::Function::iterator fit = f->getBasicBlockList().begin(); fit != f->getBasicBlockList().end(); fit++){ 
                         llvm::BasicBlock* bbl = fit;
-
+                        Instruction* insert_exe = entry->begin();
+                        Instruction* insert_incr = bbl->begin();
+                        
+                        //Create stack variable for edge profiling
+                        AllocaInst* execount = new AllocaInst(Type::getInt32Ty(bbl->getContext()), "STACKSHEEP", insert_exe);
+                        //Store value 0 to flag after allocating
+                        StoreInst *st0 = new StoreInst(ConstantInt::get(execount->getContext(), APInt(32, StringRef("0"), 10)), execount);
+                        st0->insertAfter(execount);
+                        
+                        //Load value at beggining of basic block
+                        LoadInst *loadexe = new LoadInst(execount, "loadexe", insert_incr);
+                        //Increment value
+                        BinaryOperator *incr = BinaryOperator::Create(Instruction::Add, ConstantInt::get(execount->getContext(), APInt(32, StringRef("1"), 10)), loadexe, "incr");
+                        incr->insertAfter(loadexe);
+                        //Store incremented value back to stack_var
+                        StoreInst *stincr = new StoreInst(incr, execount);
+                        stincr->insertAfter(incr);
+                                                          
                         // for each Instruction
                         for (llvm::BasicBlock::iterator bit = bbl->begin(); bit != bbl->end(); bit++){
                             llvm::Instruction* insn = bit;
