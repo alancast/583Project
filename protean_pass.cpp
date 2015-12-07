@@ -120,15 +120,18 @@ namespace {
                         
                         //Create stack variable for edge profiling
                         AllocaInst* execount = new AllocaInst(Type::getInt32Ty(bbl->getContext()), "STACKSHEEP", insert_exe);
+                        
                         //Store value 0 to flag after allocating
                         StoreInst *st0 = new StoreInst(ConstantInt::get(execount->getContext(), APInt(32, StringRef("0"), 10)), execount);
                         st0->insertAfter(execount);
                         
                         //Load value at beggining of basic block
                         LoadInst *loadexe = new LoadInst(execount, "loadexe", insert_incr);
+                        
                         //Increment value
                         BinaryOperator *incr = BinaryOperator::Create(Instruction::Add, ConstantInt::get(execount->getContext(), APInt(32, StringRef("1"), 10)), loadexe, "incr");
                         incr->insertAfter(loadexe);
+                       
                         //Store incremented value back to stack_var
                         StoreInst *stincr = new StoreInst(incr, execount);
                         stincr->insertAfter(incr);
