@@ -1075,9 +1075,10 @@ extern "C" {
         RT_fini();
     }
 
-	void test_function(){
-		PROTEAN_RT_COUT << "hello from test_function" << std::endl;
-	}
+	void protean_prof(int x){
+		PROTEAN_RT_COUT << "PROTEAN PROFILING FUNCTION" << std::endl;
+        PROTEAN_RT_COUT << "Received integer: " << x << std::endl;
+    }
 
 };
 

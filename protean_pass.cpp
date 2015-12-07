@@ -15,6 +15,8 @@
 
 #define PROTEAN_PASS_ERROR(...) std::cerr << "error: " << __VA_ARGS__ << std::endl; __SHOULD_NOT_ARRIVE;
 
+using namespace llvm;
+
 namespace {
 
     struct FunctionData {
@@ -84,19 +86,21 @@ namespace {
             if (mainfn != NULL){
                 llvm::Function* startfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "init_protean_rt", &M);
                 llvm::Instruction* firstins = mainfn->getEntryBlock().getFirstNonPHI();
-                llvm::Instruction* startfn_inst = llvm::CallInst::Create(startfn, "", firstins);
-				
- 				std::vector<llvm::Value*> Args(1);
-				Args[0] = llvm::Constant::getNullValue(llvm::Type::getInt32Ty(M.getContext()));
+                llvm::CallInst::Create(startfn, "", firstins);
+                
+ 				//std::vector<llvm::Value*> Args(1);
+				//Args[0] = ConstantInt::get(M.getContext(), APInt(32, StringRef("1"), 10));
 	
-                llvm::Function* testfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "test_function", &M);
-                llvm::CallInst::Create(testfn,"" , startfn_inst);
+                //llvm::Function* testfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "test_function", &M);
+                //llvm::CallInst::Create(testfn, "" , startfn_inst);
 
                 llvm::Function* endfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "fini_protean_rt", &M);
+                llvm::Function* proffn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "protean_prof", &M);
                 for(llvm::Function::iterator I = mainfn->begin(), E = mainfn->end(); I != E; ++I){
                     if (llvm::isa<llvm::ReturnInst>(I->getTerminator())){
                         llvm::BasicBlock* lastbb = I;
                         llvm::CallInst::Create(endfn, "", lastbb->getTerminator());
+                        llvm::CallInst::Create(proffn, "", lastbb->getTerminator());
                     }
                 }
 
@@ -113,11 +117,33 @@ namespace {
                 llvm::Function* f = it;
                 if (f != NULL){
                     DEBUG(PROTEAN_PASS_COUT << "iterating over code in function: " << f->getName().data() << std::endl);
-
+                    Function::iterator beg = f->getBasicBlockList().begin();
+                    BasicBlock* entry = beg;
+                    
                     // for each BasicBlock
                     for (llvm::Function::iterator fit = f->getBasicBlockList().begin(); fit != f->getBasicBlockList().end(); fit++){ 
                         llvm::BasicBlock* bbl = fit;
-
+                        Instruction* insert_exe = entry->begin();
+                        Instruction* insert_incr = bbl->begin();
+                        
+                        //Create stack variable for edge profiling
+                        AllocaInst* execount = new AllocaInst(Type::getInt32Ty(bbl->getContext()), "STACKSHEEP", insert_exe);
+                        
+                        //Store value 0 to flag after allocating
+                        StoreInst *st0 = new StoreInst(ConstantInt::get(execount->getContext(), APInt(32, StringRef("0"), 10)), execount);
+                        st0->insertAfter(execount);
+                        
+                        //Load value at beggining of basic block
+                        LoadInst *loadexe = new LoadInst(execount, "loadexe", insert_incr);
+                        
+                        //Increment value
+                        BinaryOperator *incr = BinaryOperator::Create(Instruction::Add, ConstantInt::get(execount->getContext(), APInt(32, StringRef("1"), 10)), loadexe, "incr");
+                        incr->insertAfter(loadexe);
+                        
+                        //Store incremented value back to stack_var
+                        StoreInst *stincr = new StoreInst(incr, execount);
+                        stincr->insertAfter(incr);
+                        
                         // for each Instruction
                         for (llvm::BasicBlock::iterator bit = bbl->begin(); bit != bbl->end(); bit++){
                             llvm::Instruction* insn = bit;
