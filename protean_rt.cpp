@@ -1067,13 +1067,17 @@ extern "C" {
     void fini_protean_rt(){
         int status, ret;
         PROTEAN_RT_COUT << "Killing off runtime" << std::endl;
-
+		PROTEAN_RT_COUT << "TESTING IF THIS WORKS" << std::endl;
         // kill off the cloned child
         kill(child_tid, SIGKILL); // different signal, sig handler should call RT_fini()
         ret = wait(&status);
 
         RT_fini();
     }
+
+	void test_function(){
+		PROTEAN_RT_COUT << "hello from test_function" << std::endl;
+	}
 
 };
 
