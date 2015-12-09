@@ -82,25 +82,32 @@ namespace {
         bool runtimeInstrument(llvm::Module& M){
             llvm::Function* mainfn = M.getFunction("main");
             llvm::FunctionType* vtype = llvm::FunctionType::get(llvm::Type::getVoidTy(M.getContext()), false);
-
+            
             if (mainfn != NULL){
                 llvm::Function* startfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "init_protean_rt", &M);
                 llvm::Instruction* firstins = mainfn->getEntryBlock().getFirstNonPHI();
                 llvm::CallInst::Create(startfn, "", firstins);
                 
- 				//std::vector<llvm::Value*> Args(1);
-				//Args[0] = ConstantInt::get(M.getContext(), APInt(32, StringRef("1"), 10));
+                
+                Value *One = ConstantInt::get(Type::getInt32Ty(M.getContext()), 1);
+                //Args[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 1);
 	
                 //llvm::Function* testfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "test_function", &M);
                 //llvm::CallInst::Create(testfn, "" , startfn_inst);
 
                 llvm::Function* endfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "fini_protean_rt", &M);
-                llvm::Function* proffn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "protean_prof", &M);
+                
+                //Create function signature for protean_prof
+                std::vector<Type*> Args(1, Type::getInt32Ty(M.getContext()));
+                FunctionType *proftype = FunctionType::get(Type::getVoidTy(M.getContext()), Args, false);
+                llvm::Function* proffn = llvm::Function::Create(proftype, llvm::GlobalValue::ExternalLinkage, "protean_prof", &M);
+                
+                
                 for(llvm::Function::iterator I = mainfn->begin(), E = mainfn->end(); I != E; ++I){
                     if (llvm::isa<llvm::ReturnInst>(I->getTerminator())){
                         llvm::BasicBlock* lastbb = I;
                         llvm::CallInst::Create(endfn, "", lastbb->getTerminator());
-                        llvm::CallInst::Create(proffn, "", lastbb->getTerminator());
+                        llvm::CallInst::Create(proffn, One, "", lastbb->getTerminator());
                     }
                 }
 
@@ -124,20 +131,20 @@ namespace {
                     for (llvm::Function::iterator fit = f->getBasicBlockList().begin(); fit != f->getBasicBlockList().end(); fit++){ 
                         llvm::BasicBlock* bbl = fit;
                         Instruction* insert_exe = entry->begin();
-                        Instruction* insert_incr = bbl->begin();
+                        Instruction* insert_incr = bbl->getTerminator();
                         
                         //Create stack variable for edge profiling
                         AllocaInst* execount = new AllocaInst(Type::getInt32Ty(bbl->getContext()), "STACKSHEEP", insert_exe);
                         
                         //Store value 0 to flag after allocating
-                        StoreInst *st0 = new StoreInst(ConstantInt::get(execount->getContext(), APInt(32, StringRef("0"), 10)), execount);
+                        StoreInst *st0 = new StoreInst(ConstantInt::get(Type::getInt32Ty(M.getContext()), 0), execount);
                         st0->insertAfter(execount);
                         
                         //Load value at beggining of basic block
                         LoadInst *loadexe = new LoadInst(execount, "loadexe", insert_incr);
                         
                         //Increment value
-                        BinaryOperator *incr = BinaryOperator::Create(Instruction::Add, ConstantInt::get(execount->getContext(), APInt(32, StringRef("1"), 10)), loadexe, "incr");
+                        BinaryOperator *incr = BinaryOperator::Create(Instruction::Add, ConstantInt::get(Type::getInt32Ty(M.getContext()), 1), loadexe, "incr");
                         incr->insertAfter(loadexe);
                         
                         //Store incremented value back to stack_var
