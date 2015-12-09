@@ -1075,9 +1075,13 @@ extern "C" {
         RT_fini();
     }
 
-	void protean_prof(int x){
+    void protean_prof(/*std::vector<int> stack_vars*/ int x){
 		PROTEAN_RT_COUT << "PROTEAN PROFILING FUNCTION" << std::endl;
-        PROTEAN_RT_COUT << "Received integer: " << x << std::endl;
+        PROTEAN_RT_COUT << "Received Integer: " << x << std::endl;
+        //PROTEAN_RT_COUT << "Vector Contains: " << std::endl;
+        //for (int i = 0; i < stack_vars.size(); i++){
+        //    PROTEAN_RT_COUT << "\t" << stack_vars[i] << std::endl;
+        //}
     }
 
 };

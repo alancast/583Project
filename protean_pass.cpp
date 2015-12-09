@@ -98,8 +98,14 @@ namespace {
                 llvm::Function* endfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "fini_protean_rt", &M);
                 
                 //Create function signature for protean_prof
-                std::vector<Type*> Args(1, Type::getInt32Ty(M.getContext()));
-                FunctionType *proftype = FunctionType::get(Type::getVoidTy(M.getContext()), Args, false);
+                //std::vector<Constant*> testvec(10, ConstantInt::get(Type::getInt32Ty(M.getContext()), 11));
+                //Value *Vec = ConstantVector::get(testvec);
+                
+                //std::vector<Type*> Args(1, Type::getPrimitiveType(M.getContext(), Type::VectorTyID));
+                std::vector<Type*> Args2(1, Type::getInt32Ty(M.getContext()));
+                FunctionType *proftype = FunctionType::get(Type::getVoidTy(M.getContext()), Args2, false);
+                
+                //Create function pointer to protean_prof defined in protean_rt
                 llvm::Function* proffn = llvm::Function::Create(proftype, llvm::GlobalValue::ExternalLinkage, "protean_prof", &M);
                 
                 
@@ -108,6 +114,7 @@ namespace {
                         llvm::BasicBlock* lastbb = I;
                         llvm::CallInst::Create(endfn, "", lastbb->getTerminator());
                         llvm::CallInst::Create(proffn, One, "", lastbb->getTerminator());
+                        //llvm::CallInst::Create(proffn, Vec, "", lastbb->getTerminator());
                     }
                 }
 
