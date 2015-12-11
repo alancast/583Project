@@ -87,33 +87,13 @@ namespace {
                 llvm::Function* startfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "init_protean_rt", &M);
                 llvm::Instruction* firstins = mainfn->getEntryBlock().getFirstNonPHI();
                 llvm::CallInst::Create(startfn, "", firstins);
-                
-                
-                Value *One = ConstantInt::get(Type::getInt32Ty(M.getContext()), 1);
-                //Args[0] = ConstantInt::get(Type::getInt32Ty(M.getContext()), 1);
-	
-                //llvm::Function* testfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "test_function", &M);
-                //llvm::CallInst::Create(testfn, "" , startfn_inst);
 
                 llvm::Function* endfn = llvm::Function::Create(vtype, llvm::GlobalValue::ExternalLinkage, "fini_protean_rt", &M);
-                
-                //Create function signature for protean_prof
-                //std::vector<Constant*> testvec(10, ConstantInt::get(Type::getInt32Ty(M.getContext()), 11));
-                //Value *Vec = ConstantVector::get(testvec);
-                
-                //std::vector<Type*> Args(1, Type::getPrimitiveType(M.getContext(), Type::VectorTyID));
-                std::vector<Type*> Args2(1, Type::getInt32Ty(M.getContext()));
-                FunctionType *proftype = FunctionType::get(Type::getVoidTy(M.getContext()), Args2, false);
-                
-                //Create function pointer to protean_prof defined in protean_rt
-                llvm::Function* proffn = llvm::Function::Create(proftype, llvm::GlobalValue::ExternalLinkage, "protean_prof", &M);
-                
                 
                 for(llvm::Function::iterator I = mainfn->begin(), E = mainfn->end(); I != E; ++I){
                     if (llvm::isa<llvm::ReturnInst>(I->getTerminator())){
                         llvm::BasicBlock* lastbb = I;
                         llvm::CallInst::Create(endfn, "", lastbb->getTerminator());
-                        llvm::CallInst::Create(proffn, One, "", lastbb->getTerminator());
                         //llvm::CallInst::Create(proffn, Vec, "", lastbb->getTerminator());
                     }
                 }
@@ -125,14 +105,25 @@ namespace {
         }
 
         void directToIndirect(llvm::Module& M){
-
+            std::vector<Type*> profargs(1, Type::getInt32Ty(M.getContext()));
+            FunctionType *proftype = FunctionType::get(Type::getVoidTy(M.getContext()), profargs, false);
+            Function* proffn = Function::Create(proftype, llvm::GlobalValue::ExternalLinkage, "protean_prof", &M);
             // for each Function
             for (llvm::Module::iterator it = M.getFunctionList().begin(); it !=  M.getFunctionList().end(); it++){
                 llvm::Function* f = it;
+                std::map<BasicBlock*, AllocaInst*> bb_to_count;
+                
                 if (f != NULL){
                     DEBUG(PROTEAN_PASS_COUT << "iterating over code in function: " << f->getName().data() << std::endl);
                     Function::iterator beg = f->getBasicBlockList().begin();
                     BasicBlock* entry = beg;
+                    BasicBlock* endblock;
+                
+                    for (Function::iterator itf = f->begin(), ite = f->end(); itf != ite; ++itf){
+                        if (isa<ReturnInst>(itf->getTerminator())){
+                            endblock = itf;
+                        }
+                    }
                     
                     // for each BasicBlock
                     for (llvm::Function::iterator fit = f->getBasicBlockList().begin(); fit != f->getBasicBlockList().end(); fit++){ 
@@ -147,7 +138,7 @@ namespace {
                         StoreInst *st0 = new StoreInst(ConstantInt::get(Type::getInt32Ty(M.getContext()), 0), execount);
                         st0->insertAfter(execount);
                         
-                        //Load value at beggining of basic block
+                        //Load value at end of basic block
                         LoadInst *loadexe = new LoadInst(execount, "loadexe", insert_incr);
                         
                         //Increment value
@@ -157,6 +148,11 @@ namespace {
                         //Store incremented value back to stack_var
                         StoreInst *stincr = new StoreInst(incr, execount);
                         stincr->insertAfter(incr);
+                        
+                        //Load value into end basic block
+                        LoadInst *loadfinal = new LoadInst(execount, "loadfinal", endblock->getTerminator());
+                        llvm::CallInst::Create(proffn, loadfinal, "", endblock->getTerminator());
+
                         
                         // for each Instruction
                         for (llvm::BasicBlock::iterator bit = bbl->begin(); bit != bbl->end(); bit++){
