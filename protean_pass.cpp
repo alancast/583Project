@@ -105,54 +105,16 @@ namespace {
         }
 
         void directToIndirect(llvm::Module& M){
-            std::vector<Type*> profargs(1, Type::getInt32Ty(M.getContext()));
-            FunctionType *proftype = FunctionType::get(Type::getVoidTy(M.getContext()), profargs, false);
-            Function* proffn = Function::Create(proftype, llvm::GlobalValue::ExternalLinkage, "protean_prof", &M);
             // for each Function
             for (llvm::Module::iterator it = M.getFunctionList().begin(); it !=  M.getFunctionList().end(); it++){
                 llvm::Function* f = it;
-                std::map<BasicBlock*, AllocaInst*> bb_to_count;
                 
                 if (f != NULL){
                     DEBUG(PROTEAN_PASS_COUT << "iterating over code in function: " << f->getName().data() << std::endl);
-                    Function::iterator beg = f->getBasicBlockList().begin();
-                    BasicBlock* entry = beg;
-                    BasicBlock* endblock;
-                
-                    for (Function::iterator itf = f->begin(), ite = f->end(); itf != ite; ++itf){
-                        if (isa<ReturnInst>(itf->getTerminator())){
-                            endblock = itf;
-                        }
-                    }
                     
                     // for each BasicBlock
                     for (llvm::Function::iterator fit = f->getBasicBlockList().begin(); fit != f->getBasicBlockList().end(); fit++){ 
                         llvm::BasicBlock* bbl = fit;
-                        Instruction* insert_exe = entry->begin();
-                        Instruction* insert_incr = bbl->getTerminator();
-                        
-                        //Create stack variable for edge profiling
-                        AllocaInst* execount = new AllocaInst(Type::getInt32Ty(bbl->getContext()), "STACKSHEEP", insert_exe);
-                        
-                        //Store value 0 to flag after allocating
-                        StoreInst *st0 = new StoreInst(ConstantInt::get(Type::getInt32Ty(M.getContext()), 0), execount);
-                        st0->insertAfter(execount);
-                        
-                        //Load value at end of basic block
-                        LoadInst *loadexe = new LoadInst(execount, "loadexe", insert_incr);
-                        
-                        //Increment value
-                        BinaryOperator *incr = BinaryOperator::Create(Instruction::Add, ConstantInt::get(Type::getInt32Ty(M.getContext()), 1), loadexe, "incr");
-                        incr->insertAfter(loadexe);
-                        
-                        //Store incremented value back to stack_var
-                        StoreInst *stincr = new StoreInst(incr, execount);
-                        stincr->insertAfter(incr);
-                        
-                        //Load value into end basic block
-                        LoadInst *loadfinal = new LoadInst(execount, "loadfinal", endblock->getTerminator());
-                        llvm::CallInst::Create(proffn, loadfinal, "", endblock->getTerminator());
-
                         
                         // for each Instruction
                         for (llvm::BasicBlock::iterator bit = bbl->begin(); bit != bbl->end(); bit++){
@@ -247,6 +209,64 @@ namespace {
             }
         }
 
+        void insertProfiling(llvm::Module& M){
+            //Declare protean_prof function
+            std::vector<Type*> profargs(1, Type::getInt32Ty(M.getContext()));
+            FunctionType *proftype = FunctionType::get(Type::getVoidTy(M.getContext()), profargs, false);
+            Function* proffn = Function::Create(proftype, llvm::GlobalValue::ExternalLinkage, "protean_prof", &M);
+            
+            //For each function in the Module
+            for (llvm::Module::iterator it = M.getFunctionList().begin(); it !=  M.getFunctionList().end(); it++){
+                llvm::Function* f = it;
+                if (f != NULL){
+                    DEBUG(PROTEAN_PASS_COUT << "profiler iterating over code in function: " << f->getName().data() << std::endl);
+                    
+                    //Get BasicBlock pointer to entry and exit block
+                    Function::iterator beg = f->getBasicBlockList().begin();
+                    BasicBlock* entry = beg;
+                    BasicBlock* endblock;
+                    for (Function::iterator itf = f->begin(), ite = f->end(); itf != ite; ++itf){
+                        if (isa<ReturnInst>(itf->getTerminator())){
+                            endblock = itf;
+                        }
+                    }
+                    
+                    //For each Basic Block
+                    for (llvm::Function::iterator fit = f->getBasicBlockList().begin(); fit != f->getBasicBlockList().end(); fit++){
+                        llvm::BasicBlock* bbl = fit;
+                        
+                        //Get instructions to help in insertion of profiling code
+                        Instruction* insert_exe = entry->begin();
+                        Instruction* insert_incr = bbl->getTerminator();
+                    
+                        //Create stack variable for basic block profiling in entry block
+                        AllocaInst* execount = new AllocaInst(Type::getInt32Ty(bbl->getContext()), "STACKSHEEP", insert_exe);
+                    
+                        //Store value 0 to flag after allocating
+                        StoreInst *st0 = new StoreInst(ConstantInt::get(Type::getInt32Ty(M.getContext()), 0), execount);
+                        st0->insertAfter(execount);
+                    
+                        //Load value at end of current basic block
+                        LoadInst *loadexe = new LoadInst(execount, "loadexe", insert_incr);
+                    
+                        //Increment value
+                        BinaryOperator *incr = BinaryOperator::Create(Instruction::Add, ConstantInt::get(Type::getInt32Ty(M.getContext()), 1), loadexe, "incr");
+                        incr->insertAfter(loadexe);
+                    
+                        //Store incremented value back to stack variable
+                        StoreInst *stincr = new StoreInst(incr, execount);
+                        stincr->insertAfter(incr);
+                    
+                        //Load value into end basic block
+                        LoadInst *loadfinal = new LoadInst(execount, "loadfinal", endblock->getTerminator());
+                        
+                        //Insert profiling call for block
+                        llvm::CallInst::Create(proffn, loadfinal, "", endblock->getTerminator());
+                    }
+                }
+            }
+        }
+
         bool runOnModule(llvm::Module& M){
             DEBUG(printGlobals(M));
 
@@ -256,6 +276,8 @@ namespace {
             if (!hasmain){
                 PROTEAN_PASS_ERROR("main() not found");
             }
+            
+            insertProfiling(M);
 
             DEBUG(printGlobals(M));
             return true;
