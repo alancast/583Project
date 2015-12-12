@@ -14,6 +14,11 @@ provide those instructions here.
 to use the UI client, it doesn't make you any less of a 
 person. Or at the very least search what command you want to run.
 -----------------------------------------------------------
+Usage:
+-To compile with profiling add -pf to pc++ command
+    EX: pc++ tests/classes.C -pf
+    Profiling is turned off by default
+-----------------------------------------------------------
 File Locations:
 -README.txt: not in protean repo
 -cfg.origcfg.pdf: not in protean repo
@@ -21,6 +26,8 @@ File Locations:
 -cfg.protean.protean.pdf: not in protean repo
 -protean_rt.cpp: /protean/runtime/protean_rt.cpp
 -protean_pass.cpp: /protean/compiler/protean_pass.cpp
+-protean_fe.py: /protean/bin/protean_fe.py
+-opt.cpp: /llvm/tools/opt/opt.cpp
 -----------------------------------------------------------
 File Explanations:
 -cfg.origcfg.pdf: cfg for original test case before 
@@ -34,6 +41,8 @@ File Explanations:
                     call protean version of a function
 -protean_rt.cpp: runtime pass of protean
 -protean_pass.cpp: static pass of protean
+-protean_fe.py: python script that runs when you pc++ something
+-opt.cpp: /llvm/tools/opt/opt.cpp
 -----------------------------------------------------------
 File Instructions:
 -

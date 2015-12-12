@@ -10,11 +10,13 @@
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Analysis/Passes.h>
 #include <llvm/Support/CallSite.h>
+#include <llvm/Support/CommandLine.h>
 
 #include "../common/protean_common.hpp"
 
 #define PROTEAN_PASS_ERROR(...) std::cerr << "error: " << __VA_ARGS__ << std::endl; __SHOULD_NOT_ARRIVE;
 
+extern bool ProfilingFlag;
 using namespace llvm;
 
 namespace {
@@ -276,8 +278,10 @@ namespace {
             if (!hasmain){
                 PROTEAN_PASS_ERROR("main() not found");
             }
-            
-            insertProfiling(M);
+            if (ProfilingFlag){
+                PROTEAN_PASS_COUT << "Inserting profiling code\n";
+                insertProfiling(M);
+            }
 
             DEBUG(printGlobals(M));
             return true;
