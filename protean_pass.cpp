@@ -325,16 +325,15 @@ namespace {
             DEBUG(printGlobals(M));
 
             directToIndirect(M);
-
-            insertProfiling(M);
+            
+            if (ProfilingFlag){
+                PROTEAN_PASS_COUT << "Inserting profiling code\n";
+                insertProfiling(M);
+            }
             
             bool hasmain = runtimeInstrument(M);
             if (!hasmain){
                 PROTEAN_PASS_ERROR("main() not found");
-            }
-            if (ProfilingFlag){
-                PROTEAN_PASS_COUT << "Inserting profiling code\n";
-                insertProfiling(M);
             }
 
             DEBUG(printGlobals(M));
