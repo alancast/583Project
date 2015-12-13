@@ -213,7 +213,14 @@ namespace {
 
         void insertProfiling(llvm::Module& M){
             //Declare protean_prof function
-            std::vector<Type*> profargs(1, Type::getInt32Ty(M.getContext()));
+            std::vector<Type*> profargs;//, Type::getInt32Ty(M.getContext())); 
+
+            PointerType *point_type = PointerType::get(IntegerType::get(M.getContext(), 8), 0);
+            profargs.push_back(Type::getInt32Ty(M.getContext()));
+            profargs.push_back(Type::getInt32Ty(M.getContext()));
+            profargs.push_back(point_type);
+            // profargs.push_back(array_type);
+            // profargs.push_back(Type::getInt8PtrTy(M.getContext()));
             FunctionType *proftype = FunctionType::get(Type::getVoidTy(M.getContext()), profargs, false);
             Function* proffn = Function::Create(proftype, llvm::GlobalValue::ExternalLinkage, "protean_prof", &M);
             
@@ -233,7 +240,20 @@ namespace {
                         }
                     }
                     
+                    StringRef func_name = f->getName();
+
+                    ArrayType *array_type = ArrayType::get(Type::getInt8Ty(M.getContext()), func_name.size());
+
+                    Constant* test_str = llvm::ConstantDataArray::getString(M.getContext(), func_name, false);
+
+                    AllocaInst *string_var = new AllocaInst(array_type, "TESTING", endblock->getTerminator());
+
+                    StoreInst *str_str = new StoreInst(test_str, string_var, endblock->getTerminator());
+
+                    LoadInst *ld_str = new LoadInst(string_var, "test_load", endblock->getTerminator());
+
                     //For each Basic Block
+                    int bb_num = 0;
                     for (llvm::Function::iterator fit = f->getBasicBlockList().begin(); fit != f->getBasicBlockList().end(); fit++){
                         llvm::BasicBlock* bbl = fit;
                         
@@ -243,13 +263,22 @@ namespace {
                     
                         //Create stack variable for basic block profiling in entry block
                         AllocaInst* execount = new AllocaInst(Type::getInt32Ty(bbl->getContext()), "STACKSHEEP", insert_exe);
+
+                        AllocaInst * bb_var = new AllocaInst(Type::getInt32Ty(bbl->getContext()), "bb_var", insert_exe);
+
                     
                         //Store value 0 to flag after allocating
                         StoreInst *st0 = new StoreInst(ConstantInt::get(Type::getInt32Ty(M.getContext()), 0), execount);
                         st0->insertAfter(execount);
+
+                        StoreInst *st_bb = new StoreInst(ConstantInt::get(Type::getInt32Ty(M.getContext()), bb_num), bb_var);
+                        st_bb->insertAfter(bb_var);
+
                     
                         //Load value at end of current basic block
                         LoadInst *loadexe = new LoadInst(execount, "loadexe", insert_incr);
+
+
                     
                         //Increment value
                         BinaryOperator *incr = BinaryOperator::Create(Instruction::Add, ConstantInt::get(Type::getInt32Ty(M.getContext()), 1), loadexe, "incr");
@@ -261,9 +290,32 @@ namespace {
                     
                         //Load value into end basic block
                         LoadInst *loadfinal = new LoadInst(execount, "loadfinal", endblock->getTerminator());
+                        LoadInst *load_bb = new LoadInst(bb_var, "load_bb", endblock->getTerminator());
+
+
+                        //String value
+                        // Value* v = llvm::ConstantArray::get(array_type, StringRef("test"));
+
                         
+                       
+
+                        std::vector<llvm::Value*> vect_1;
+                        vect_1.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()), 0));
+                        vect_1.push_back(ConstantInt::get(Type::getInt32Ty(M.getContext()), 0));
+
+                        GetElementPtrInst *ptr = GetElementPtrInst::Create(string_var, ArrayRef<Value*>(vect_1), "");
+
+                        ptr->insertBefore(endblock->getTerminator());
+                        // Value *v = StringRef("test");
+
+                        std::vector<Value *> func_args;
+                        func_args.push_back(loadfinal);
+                        func_args.push_back(load_bb);
+                        func_args.push_back(ptr);
                         //Insert profiling call for block
-                        llvm::CallInst::Create(proffn, loadfinal, "", endblock->getTerminator());
+                        llvm::CallInst::Create(proffn, ArrayRef<Value*>(func_args),  "", endblock->getTerminator());
+                        // llvm::CallInst::Create(proffn, loadfinal,  "", endblock->getTerminator());
+                        ++bb_num;
                     }
                 }
             }
@@ -274,6 +326,8 @@ namespace {
 
             directToIndirect(M);
 
+            insertProfiling(M);
+            
             bool hasmain = runtimeInstrument(M);
             if (!hasmain){
                 PROTEAN_PASS_ERROR("main() not found");

@@ -37,13 +37,22 @@
 #include "../common/protean_common.hpp"
 #include "Optimizer.hpp"
 
+#include <string>
+#include <vector>
+#include <map>
+
 struct OptimizationManager;
 static OptimizationManager* optman = NULL;
+
+static std::ofstream ofs ("proteanBBprof.txt", std::ofstream::out);
+static std::map<std::string, std::vector<int>> prof_map;
+
 
 #define PROTEAN_RT_SELFID (pthread_self())
 #define PROTEAN_RT_TIMER (elapsed_time())
 
 #define PROTEAN_IR_BACKING_FILE "tmp.protean.bc" // FIXME: do this with mktemp
+
 
 static pid_t parent_tid;
 static pid_t child_tid;
@@ -1064,20 +1073,67 @@ extern "C" {
         PROTEAN_RT_COUT << "Returning control to application" << std::endl;
     }
 
+    void print_prof()
+    {
+        std::map<std::string, std::vector<int>>::iterator it;
+        for(it = prof_map.begin(); it != prof_map.end(); it++)\
+        {
+            std::string func_name = it->first;
+            std::vector<int> &vect_alias = it->second;
+            ofs  << "Function Name is: " << func_name << std::endl;
+            for(int i = 0; i < vect_alias.size(); ++i)
+            {
+                ofs << "BasicBlock Number: "  << i << " executes " << vect_alias[i] << " times\n";
+            }
+        }
+    }
+
     void fini_protean_rt(){
         int status, ret;
         PROTEAN_RT_COUT << "Killing off runtime" << std::endl;
-		PROTEAN_RT_COUT << "TESTING IF THIS WORKS" << std::endl;
+        PROTEAN_RT_COUT << "TESTING IF THIS WORKS" << std::endl;
         // kill off the cloned child
         kill(child_tid, SIGKILL); // different signal, sig handler should call RT_fini()
         ret = wait(&status);
 
+        print_prof();
+
         RT_fini();
     }
 
-    void protean_prof(/*std::vector<int> stack_vars*/ int x){
-		PROTEAN_RT_COUT << "PROTEAN PROFILING FUNCTION" << std::endl;
-        PROTEAN_RT_COUT << "Received Integer: " << x << std::endl;
+    void protean_prof(/*std::vector<int> stack_vars*/ int x, int bb, char *str){
+        //PROTEAN_RT_COUT << "PROTEAN PROFILING FUNCTION" << std::endl;
+        //PROTEAN_RT_COUT << "Received Integer: " << x << std::endl;
+        // // std::string testing(str);
+        // // PROTEAN_RT_COUT << testing << std::endl;
+        // PROTEAN_RT_COUT  << "Function Name is: " << str << std::endl;
+        // PROTEAN_RT_COUT << "BasicBlock Number is: " << bb << std::endl;
+
+        // ofs << "PROTEAN PROFILING FUNCTION" << std::endl;
+        // ofs << "Received Integer: " << x << std::endl;
+        std::string func_name(str);
+        // // PROTEAN_RT_COUT << testing << std::endl;
+        // ofs  << "Function Name is: " << str << std::endl;
+        // ofs << "BasicBlock Number is: " << bb << std::endl;
+
+        if(prof_map.find(func_name) == prof_map.end())
+        {
+            prof_map[func_name].push_back(x);
+        }
+        else
+        {
+            std::vector<int> &vect_alias = prof_map[func_name];
+            if(vect_alias.size() <= bb)
+            {
+                vect_alias.resize(bb + 1, 0);
+                vect_alias[bb] = x;
+            }
+            else
+            {
+                vect_alias[bb] += x;
+            }
+        }
+
         //PROTEAN_RT_COUT << "Vector Contains: " << std::endl;
         //for (int i = 0; i < stack_vars.size(); i++){
         //    PROTEAN_RT_COUT << "\t" << stack_vars[i] << std::endl;
