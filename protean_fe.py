@@ -142,7 +142,7 @@ def compile_c(fname, ext, outFile, ptopts):
 
     return bytecode
 
-def link_files(fnames, outFile, ptopts):
+def link_files(fnames, outFile, ptopts, profiling):
     print '=========== LINKING OBJECT FILES ============='
     bytecodes = []
     archives = []
@@ -168,12 +168,12 @@ def link_files(fnames, outFile, ptopts):
             bytecodes.append(line.strip())
         run_shell_command('ar x ' + a)
 
-    mystr = {'UNIF': outFile, 'OBJS': string.join(bytecodes, ' '), 'protean_pass_path': protean_pass_path, 'protean_rt_path': protean_rt_path, 'OPTS': string.join(ptopts, ' '), 'ARCV': string.join(archives, ' ')}
+    mystr = {'UNIF': outFile, 'OBJS': string.join(bytecodes, ' '), 'protean_pass_path': protean_pass_path, 'protean_rt_path': protean_rt_path, 'OPTS': string.join(ptopts, ' '), 'ARCV': string.join(archives, ' '), 'PROF': string.join(profiling, ' ')}
 
     run_shell_command('llvm-link -o %(UNIF)s.bc %(OBJS)s' % mystr)
     if compileOrig == False:
 #        run_shell_command('opt -load %(protean_pass_path)s/protean_pass.so -protean -o %(UNIF)s.protean.bc %(UNIF)s.bc' % mystr)
-        run_shell_command('opt -load %(protean_pass_path)s/protean_pass.so -protean -always-inline -o %(UNIF)s.protean.bc %(UNIF)s.bc %(OPTS)s' % mystr)
+        run_shell_command('opt -load %(protean_pass_path)s/protean_pass.so -protean -always-inline -o %(UNIF)s.protean.bc %(UNIF)s.bc %(PROF)s' % mystr)
     else:
         run_shell_command('cp %(UNIF)s.bc %(UNIF)s.protean.bc' % mystr)
     run_shell_command('llc -filetype=obj %(UNIF)s.protean.bc -o %(UNIF)s.o' % mystr)
@@ -196,6 +196,7 @@ def main():
     outFile = ''
 
     args = []
+    profiling = []
     skip = False
     for i in range(1, len(sys.argv), 1):
         if sys.argv[i] == '-c':
@@ -206,6 +207,8 @@ def main():
                 error_die('-o option requires argument')
             outFile = sys.argv[i+1]
             skip = True
+        elif sys.argv[i] == '-pf':
+            profiling.append(sys.argv[i])
         else:
             if skip == False:
                 args.append(sys.argv[i])
@@ -246,7 +249,7 @@ def main():
     if toObject == False:
         if outFile == '':
             outFile = 'a.out'
-        link_files(link_these, outFile, ptopts)
+        link_files(link_these, outFile, ptopts, profiling)
 
 
 if __name__ == '__main__':
