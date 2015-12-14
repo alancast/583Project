@@ -28,9 +28,10 @@ B. Aditya Shankar (25%)
 C. Alex Lancaster (20%)
     1. Edited LLVM and protean pass to make profiling optional
     2. Helped figure out how to pass a freaking string variable in an llvm function
-    3. Helped setup SPECCPU benchmark
+    3. Helped setup benchmark
     4. Debugged cfgs and program
 
 C. Jaleel Salhi (20%)
     1. Wrote the paper
     2. Debugged cfgs and program
+    3. Assisted in just about all parts of the code. Dabbled in just about all code and didn't focus on being main contributer on any particular part.
