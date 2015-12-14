@@ -44,7 +44,6 @@
 struct OptimizationManager;
 static OptimizationManager* optman = NULL;
 
-static std::ofstream ofs ("proteanBBprof.txt", std::ofstream::out);
 static std::map<std::string, std::vector<int>> prof_map;
 
 
@@ -1075,6 +1074,8 @@ extern "C" {
 
     void print_prof()
     {
+        std::ofstream ofs ("proteanBBprof.txt", std::ofstream::out);
+        
         std::map<std::string, std::vector<int>>::iterator it;
         for(it = prof_map.begin(); it != prof_map.end(); it++)\
         {
@@ -1095,9 +1096,11 @@ extern "C" {
         // kill off the cloned child
         kill(child_tid, SIGKILL); // different signal, sig handler should call RT_fini()
         ret = wait(&status);
-
-        print_prof();
-
+        
+        if (!prof_map.empty()){
+            print_prof();
+        }
+        
         RT_fini();
     }
 
