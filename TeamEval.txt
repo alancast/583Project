@@ -1,0 +1,27 @@
+                      EECS 583, Advanced Compiler
+                               (Fall 2015)
+                     Computer Science and Engineering
+                         University of Michigan
+
+
+                        Team Self Evaluation Form
+
+
+Each team must submit one copy of this form. The members of each team should
+describe each group member's contribution in detail, and all members should
+agree on this form before submission. Feel free to add more entries if your
+group has more than 3 members.
+
+A. Gordon Jones
+    1. Did lots of stuff
+
+B. Aditya Shankar
+    1. Did stuff
+
+C. Alex Lancaster
+    1. Edited LLVM and protean pass to make profiling optional
+    2. Debugged cfgs and program
+
+C. Jaleel Salhi
+    1. Wrote the paper
+    2. Debugged cfgs and program
