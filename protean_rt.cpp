@@ -1084,7 +1084,7 @@ extern "C" {
             ofs  << "Function Name is: " << func_name << std::endl;
             for(int i = 0; i < vect_alias.size(); ++i)
             {
-                ofs << "BasicBlock Number: "  << i << " executes " << vect_alias[i] << " times\n";
+                ofs << "\tBasicBlock Number: "  << i << " executes " << vect_alias[i] << " times\n";
             }
         }
     }

@@ -13,10 +13,15 @@ agree on this form before submission. Feel free to add more entries if your
 group has more than 3 members.
 
 A. Gordon Jones (35%)
-    1. Did lots of stuff
+    1. Downloaded and installed protean on each group member’s caen account, showed them how to run it
+    2. Added core IR instrumentation to keep track of basic block execution
+    3. Figured out how to pass arguments from protean_pass to protean_rt functions
+    4. Assisted in adding code to protean_pass that called protean_rt functions to extract profiling data
+    5. Assisted in figuring out how to pass the string variable in llvm function call
+    6. Assisted in writing runtime functions that maintain basic block execution
 
 B. Aditya Shankar (25%)
-    1. Added code to protean_pass to call profiling run time funtion at the end of each function of the program being compiled.
+    1. Added code to protean_pass to call profiling run time function at the end of each function of the program being compiled.
     2. Figured out how to successfully pass a string variable in an llvm function call for the function name.
     3. Wrote Runtime functions to maintain basic block execution counts and output
 
