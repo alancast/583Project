@@ -12,7 +12,7 @@ describe each group member's contribution in detail, and all members should
 agree on this form before submission. Feel free to add more entries if your
 group has more than 3 members.
 
-A. Gordon Jones (35%)
+A. Gordon Jones (25%)
     1. Downloaded and installed protean on each group member’s caen account, showed them how to run it
     2. Added core IR instrumentation to keep track of basic block execution
     3. Figured out how to pass arguments from protean_pass to protean_rt functions
@@ -25,13 +25,13 @@ B. Aditya Shankar (25%)
     2. Figured out how to successfully pass a string variable in an llvm function call for the function name.
     3. Wrote Runtime functions to maintain basic block execution counts and output
 
-C. Alex Lancaster (20%)
+C. Alex Lancaster (25%)
     1. Edited LLVM and protean pass to make profiling optional
     2. Helped figure out how to pass a freaking string variable in an llvm function
     3. Configured and ran Polybench benchmarks and gathered results!!! Yay, it finally worked!
     4. Debugged cfgs and program
 
-C. Jaleel Salhi (20%)
+C. Jaleel Salhi (25%)
     1. Wrote the paper
     2. Debugged cfgs and program
     3. Assisted in just about all parts of the code. Dabbled in just about all code and didn't focus on being main contributer on any particular part.
